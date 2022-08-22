@@ -4,6 +4,9 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include "Configfile.h"
+
+#ifndef APMODE_H
+#define APMODE_H
 const char getpassword_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -114,3 +117,5 @@ void ApMode::run()
     while (true)
         dnsServer.processNextRequest();
 }
+
+#endif
