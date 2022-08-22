@@ -5,7 +5,7 @@
 void setup()
 {
     pinMode(2,OUTPUT);
-    ApMode ap;
+    ApMode ap("/wifi.cfg");
 
     ap.run();
 }

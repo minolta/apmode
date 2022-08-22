@@ -2,6 +2,8 @@
 #include <KDNSServer.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h>
+#include "Configfile.h"
 const char getpassword_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -35,11 +37,47 @@ PASSWORD:<input type="password" name="password">
 </html>)rawliteral";
 class ApMode
 {
+private:
+    Configfile cfg;
+    String configname;
+    String apname="ESP AP mode";
 
 public:
+    ApMode(String n);
+    ApMode();
     void run();
+    String getConfigname();
+    void setApname(String);
+    void setConfigname(String name);
+    void save(AsyncWebServerRequest *request);
 };
 
+void ApMode::setApname(String n)
+{
+    apname = n;
+}
+ApMode::ApMode()
+{
+}
+ApMode::ApMode(String name)
+{
+    configname = name;
+}
+
+void ApMode::save(AsyncWebServerRequest *request)
+{
+    cfg = Configfile(configname);
+    cfg.openFile();
+    String password = request->arg("password");
+    String ssid = request->arg("ssid");
+    cfg.addConfig("ssid", ssid);
+    cfg.addConfig("password", password);
+    request->send(200, "text/html", "Ok SSID " + ssid + " Password " + password);
+}
+String ApMode::getConfigname()
+{
+    return configname;
+}
 void ApMode::run()
 {
 
@@ -53,7 +91,7 @@ void ApMode::run()
     pinMode(2, OUTPUT);
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    WiFi.softAP("For test Apmode"); // WiFi name
+    WiFi.softAP(apname); // WiFi name
 
     // if DNSServer is started with "*" for domain name, it will reply with
     // provided IP to all DNS request
@@ -65,6 +103,13 @@ void ApMode::run()
 
     webServer.onNotFound([](AsyncWebServerRequest *request)
                          { request->send(200, "text/html", getpassword_html); });
+    webServer.on("/setpassword", HTTP_POST, [&](AsyncWebServerRequest *request)
+                 { save(request); });
+
+    webServer.on("/reset", HTTP_POST, [](AsyncWebServerRequest *request)
+                 {
+              request->send(200, "text/html", "Re start");
+               ESP.restart(); });
     webServer.begin();
     while (true)
         dnsServer.processNextRequest();
