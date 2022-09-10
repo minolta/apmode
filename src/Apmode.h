@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <KDNSServer.h>
-#include <ESPAsyncTCP.h>
+// #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include "Configfile.h"
@@ -94,7 +94,7 @@ void ApMode::run()
     pinMode(2, OUTPUT);
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(apname); // WiFi name
+    WiFi.softAP(apname.c_str()); // WiFi name
 
     // if DNSServer is started with "*" for domain name, it will reply with
     // provided IP to all DNS request
