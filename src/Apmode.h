@@ -41,81 +41,85 @@ PASSWORD:<input type="password" name="password">
 class ApMode
 {
 private:
-    Configfile cfg;
-    String configname;
-    String apname="ESP AP mode";
+  Configfile cfg;
+  String configname;
+  String apname = "ESP AP mode";
 
 public:
-    ApMode(String n);
-    ApMode();
-    void run();
-    String getConfigname();
-    void setApname(String);
-    void setConfigname(String name);
-    void save(AsyncWebServerRequest *request);
+  ApMode(String n);
+  ApMode();
+  void run();
+  String getConfigname();
+  void setApname(String);
+  void setConfigname(String name);
+  void save(AsyncWebServerRequest *request);
 };
 
 void ApMode::setApname(String n)
 {
-    apname = n;
+  apname = n;
 }
 ApMode::ApMode()
 {
 }
 ApMode::ApMode(String name)
 {
-    configname = name;
+  configname = name;
 }
 
 void ApMode::save(AsyncWebServerRequest *request)
 {
-    cfg = Configfile(configname);
-    cfg.openFile();
-    String password = request->arg("password");
-    String ssid = request->arg("ssid");
-    cfg.addConfig("ssid", ssid);
-    cfg.addConfig("password", password);
-    request->send(200, "text/html", "Ok SSID " + ssid + " Password " + password);
+
+  String password = request->arg("password");
+  String ssid = request->arg("ssid");
+  cfg.addConfig("ssid", ssid);
+  cfg.addConfig("password", password);
+  
+  request->send(200, "text/html", "Ok SSID " + ssid + " Password " + password);
 }
 String ApMode::getConfigname()
 {
-    return configname;
+  return configname;
 }
 void ApMode::run()
 {
+  cfg = Configfile(configname);
+  cfg.setbuffer(1024);
+  boolean open = cfg.openFile();
+  Serial.print("Open file " + configname + " is " + open);
+  const byte DNS_PORT = 53;      // Capture DNS requests on port 53
+  IPAddress apIP(10, 10, 10, 1); // Private network for server
+  KDNSServer dnsServer;          // Create the DNS object
+  boolean t = cfg.openFile();
 
-    const byte DNS_PORT = 53;      // Capture DNS requests on port 53
-    IPAddress apIP(10, 10, 10, 1); // Private network for server
-    KDNSServer dnsServer;          // Create the DNS object
+  // ESP8266WebServer webServer(80); // HTTP server
+  AsyncWebServer webServer(80);
+  Serial.begin(9600);
+  pinMode(2, OUTPUT);
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+  WiFi.softAP(apname.c_str()); // WiFi name
 
-    // ESP8266WebServer webServer(80); // HTTP server
-    AsyncWebServer webServer(80);
-    Serial.begin(9600);
-    pinMode(2, OUTPUT);
-    WiFi.mode(WIFI_AP);
-    WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(apname.c_str()); // WiFi name
+  // if DNSServer is started with "*" for domain name, it will reply with
+  // provided IP to all DNS request
+  dnsServer.start(DNS_PORT, "*", apIP);
 
-    // if DNSServer is started with "*" for domain name, it will reply with
-    // provided IP to all DNS request
-    dnsServer.start(DNS_PORT, "*", apIP);
+  // replay to all requests with same HTML
+  // webServer.onNotFound([]()
+  //                      { webServer.send(200, "text/html", responseHTML); });
 
-    // replay to all requests with same HTML
-    // webServer.onNotFound([]()
-    //                      { webServer.send(200, "text/html", responseHTML); });
+  webServer.onNotFound([](AsyncWebServerRequest *request)
+                       { request->send(200, "text/html", getpassword_html); });
+  webServer.on("/setpassword", HTTP_POST, [&](AsyncWebServerRequest *request)
+               { save(request); });
 
-    webServer.onNotFound([](AsyncWebServerRequest *request)
-                         { request->send(200, "text/html", getpassword_html); });
-    webServer.on("/setpassword", HTTP_POST, [&](AsyncWebServerRequest *request)
-                 { save(request); });
-
-    webServer.on("/reset", HTTP_POST, [](AsyncWebServerRequest *request)
-                 {
+  webServer.on("/reset", HTTP_POST, [](AsyncWebServerRequest *request)
+               {
               request->send(200, "text/html", "Re start");
                ESP.restart(); });
-    webServer.begin();
-    while (true)
-        dnsServer.processNextRequest();
+  webServer.begin();
+  while (true)
+    dnsServer.processNextRequest();
 }
 
 #endif
