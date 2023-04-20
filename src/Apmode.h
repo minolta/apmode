@@ -44,6 +44,7 @@ private:
   Configfile cfg;
   String configname;
   String apname = "ESP AP mode";
+  long apmodetime = 5;
 
 public:
   ApMode(String n);
@@ -53,11 +54,16 @@ public:
   void setApname(String);
   void setConfigname(String name);
   void save(AsyncWebServerRequest *request);
+  void setapmodetime(long t);
 };
 
 void ApMode::setApname(String n)
 {
   apname = n;
+}
+void ApMode::setapmodetime(long t)
+{
+  this->apmodetime = t;
 }
 ApMode::ApMode()
 {
@@ -74,7 +80,7 @@ void ApMode::save(AsyncWebServerRequest *request)
   String ssid = request->arg("ssid");
   cfg.addConfig("ssid", ssid);
   cfg.addConfig("password", password);
-  
+
   request->send(200, "text/html", "Ok SSID " + ssid + " Password " + password);
 }
 String ApMode::getConfigname()
@@ -118,8 +124,18 @@ void ApMode::run()
               request->send(200, "text/html", "Re start");
                ESP.restart(); });
   webServer.begin();
+  long millisecs = millis();
+  long timeout = apmodetime * 60 * 1000;
   while (true)
+  {
     dnsServer.processNextRequest();
+    long now = millis();
+    long a = now - millisecs;
+    Serial.printf("Ampmode  %ld < %ld\n",a,timeout);
+
+    if (a > (timeout))
+      ESP.restart();
+  }
 }
 
 #endif
