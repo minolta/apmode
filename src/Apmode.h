@@ -117,7 +117,8 @@ void ApMode::run()
   webServer.onNotFound([](AsyncWebServerRequest *request)
                        { request->send(200, "text/html", getpassword_html); });
   webServer.on("/setpassword", HTTP_POST, [&](AsyncWebServerRequest *request)
-               { save(request); });
+               { save(request);
+               ESP.restart(); });
 
   webServer.on("/reset", HTTP_POST, [](AsyncWebServerRequest *request)
                {
@@ -131,7 +132,7 @@ void ApMode::run()
     dnsServer.processNextRequest();
     long now = millis();
     long a = now - millisecs;
-    Serial.printf("Ampmode  %ld < %ld\n",a,timeout);
+    Serial.printf("Ampmode  %ld < %ld\n", a, timeout);
 
     if (a > (timeout))
       ESP.restart();
