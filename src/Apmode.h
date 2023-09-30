@@ -45,6 +45,7 @@ private:
   String configname;
   String apname = "ESP AP mode";
   long apmodetime = 5;
+  boolean restart = true; // บอกให้  AP restart or not
 
 public:
   ApMode(String n);
@@ -55,8 +56,13 @@ public:
   void setConfigname(String name);
   void save(AsyncWebServerRequest *request);
   void setapmodetime(long t);
+  void setrestartmode(boolean r);
 };
 
+void ApMode::setrestartmode(boolean r)
+{
+  restart = r;
+}
 void ApMode::setApname(String n)
 {
   apname = n;
@@ -134,8 +140,10 @@ void ApMode::run()
     long a = now - millisecs;
     Serial.printf("Ampmode  %ld < %ld\n", a, timeout);
 
-    if (a > (timeout))
+    if (a > (timeout) && restart)
       ESP.restart();
+    else if (a > (timeout) && !restart)
+      break;
   }
 }
 
